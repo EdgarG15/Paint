@@ -1,235 +1,165 @@
-// ignore_for_file: deprecated_member_use, unnecessary_null_comparison
-
 import 'dart:ui';
-import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
-void main() => runApp(const MyApp());
+import 'package:flutter/material.dart';
+
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(),
+      home: DrawingBoard(),
     );
   }
 }
 
-class DrawingArea {
-  Offset point;
-  Paint areaPaint;
-
-  DrawingArea({required this.point, required this.areaPaint});
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+class DrawingBoard extends StatefulWidget {
+  const DrawingBoard({super.key});
 
   @override
   // ignore: library_private_types_in_public_api
-  _MyHomePageState createState() => _MyHomePageState();
+  _DrawingBoardState createState() => _DrawingBoardState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  List<DrawingArea> points = [];
-  late Color selectedColor;
-  late double strokeWidth;
-
-  @override
-  void initState() {
-    super.initState();
-    selectedColor = Colors.black;
-    strokeWidth = 2.0;
-  }
-
+class _DrawingBoardState extends State<DrawingBoard> {
+  Color selectedColor = Colors.black;
+  double strokeWidth = 5;
+  List<DrawingPoint> drawingPoints = [];
+  List<Color> colors = [
+    Colors.pink,
+    Colors.red,
+    Colors.black,
+    Colors.yellow,
+    Colors.amberAccent,
+    Colors.purple,
+    Colors.green,
+  ];
   @override
   Widget build(BuildContext context) {
-    final double width = MediaQuery.of(context).size.width;
-    final double height = MediaQuery.of(context).size.height;
-
-    void selectColor() {
-      showDialog(
-        builder: (context) => AlertDialog(
-          title: const Text('Color Chooser'),
-          content: SingleChildScrollView(
-            child: BlockPicker(
-              pickerColor: selectedColor,
-              onColorChanged: (color) {
-                setState(() {
-                  selectedColor = color;
-                });
-              },
-            ),
-          ),
-          actions: <Widget>[
-            FlatButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text("Close"))
-          ],
-        ),
-        context: context,
-      );
-    }
-
     return Scaffold(
       body: Stack(
-        children: <Widget>[
-          Container(
-            decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                  Color.fromRGBO(138, 35, 135, 1.0),
-                  Color.fromRGBO(233, 64, 87, 1.0),
-                  Color.fromRGBO(242, 113, 33, 1.0),
-                ])),
+        children: [
+          GestureDetector(
+            onPanStart: (details) {
+              setState(() {
+                drawingPoints.add(
+                  DrawingPoint(
+                    details.localPosition,
+                    Paint()
+                      ..color = selectedColor
+                      ..isAntiAlias = true
+                      ..strokeWidth = strokeWidth
+                      ..strokeCap = StrokeCap.round,
+                  ),
+                );
+              });
+            },
+            onPanUpdate: (details) {
+              setState(() {
+                drawingPoints.add(
+                  DrawingPoint(
+                    details.localPosition,
+                    Paint()
+                      ..color = selectedColor
+                      ..isAntiAlias = true
+                      ..strokeWidth = strokeWidth
+                      ..strokeCap = StrokeCap.round,
+                  ),
+                );
+              });
+            },
+            onPanEnd: (details) {
+              setState(() {
+                // drawingPoints.add(null!);
+              });
+            },
+            child: CustomPaint(
+              painter: DrawingPainter(drawingPoints),
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height,
+                width: MediaQuery.of(context).size.width,
+              ),
+            ),
           ),
-          Center(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Container(
-                    width: width * 0.80,
-                    height: height * 0.80,
-                    decoration: BoxDecoration(
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(20.0)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.4),
-                            blurRadius: 5.0,
-                            spreadRadius: 1.0,
-                          )
-                        ]),
-                    child: GestureDetector(
-                      onPanDown: (details) {
-                        setState(() {
-                          points.add(DrawingArea(
-                              point: details.localPosition,
-                              areaPaint: Paint()
-                                ..strokeCap = StrokeCap.round
-                                ..isAntiAlias = true
-                                ..color = selectedColor
-                                ..strokeWidth = strokeWidth));
-                        });
-                      },
-                      onPanUpdate: (details) {
-                        setState(() {
-                          points.add(DrawingArea(
-                              point: details.localPosition,
-                              areaPaint: Paint()
-                                ..strokeCap = StrokeCap.round
-                                ..isAntiAlias = true
-                                ..color = selectedColor
-                                ..strokeWidth = strokeWidth));
-                        });
-                      },
-                      /*onPanEnd: (details) {
-                        setState(() {
-                          points.add(null);
-                        });
-                      },*/
-                      child: SizedBox.expand(
-                        child: ClipRRect(
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(20.0)),
-                          child: CustomPaint(
-                            painter: MyCustomPainter(points: points),
-                          ),
-                        ),
-                      ),
-                    ),
+          Positioned(
+            top: 40,
+            right: 30,
+            child: SafeArea(
+              child: Row(
+                children: [
+                  Slider(
+                    min: 0,
+                    max: 40,
+                    value: strokeWidth,
+                    onChanged: (val) => setState(() => strokeWidth = val),
                   ),
-                ),
-                Container(
-                  width: width * 0.80,
-                  decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.all(Radius.circular(20.0))),
-                  child: Row(
-                    children: <Widget>[
-                      IconButton(
-                          icon: Icon(
-                            Icons.color_lens,
-                            color: selectedColor,
-                          ),
-                          onPressed: () {
-                            selectColor();
-                          }),
-                      Expanded(
-                        child: Slider(
-                          min: 1.0,
-                          max: 5.0,
-                          label: "Stroke $strokeWidth",
-                          activeColor: selectedColor,
-                          value: strokeWidth,
-                          onChanged: (double value) {
-                            setState(() {
-                              strokeWidth = value;
-                            });
-                          },
-                        ),
-                      ),
-                      IconButton(
-                          icon: const Icon(
-                            Icons.layers_clear,
-                            color: Colors.black,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              points.clear();
-                            });
-                          }),
-                    ],
-                  ),
-                )
-              ],
+                  ElevatedButton.icon(
+                    onPressed: () => setState(() => drawingPoints = []),
+                    icon: const Icon(Icons.clear),
+                    label: const Text("Clear Board"),
+                  )
+                ],
+              ),
             ),
           ),
         ],
       ),
+      bottomNavigationBar: BottomAppBar(
+        child: Container(
+          color: Colors.grey[200],
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(
+              colors.length,
+              (index) => _buildColorChose(colors[index]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorChose(Color color) {
+    bool isSelected = selectedColor == color;
+    return GestureDetector(
+      onTap: () => setState(() => selectedColor = color),
+      child: Container(
+        height: isSelected ? 47 : 40,
+        width: isSelected ? 47 : 40,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: isSelected ? Border.all(color: Colors.white, width: 3) : null,
+        ),
+      ),
     );
   }
 }
 
-class MyCustomPainter extends CustomPainter {
-  List<DrawingArea> points;
+class DrawingPainter extends CustomPainter {
+  final List<DrawingPoint?> drawingPoints;
 
-  MyCustomPainter({required this.points});
-
+  DrawingPainter(this.drawingPoints);
   @override
   void paint(Canvas canvas, Size size) {
-    Paint background = Paint()..color = Colors.white;
-    Rect rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    canvas.drawRect(rect, background);
-    canvas.clipRect(rect);
-
-    for (int x = 0; x < points.length - 1; x++) {
-      if (points[x] != null && points[x + 1] != null) {
-        canvas.drawLine(
-            points[x].point, points[x + 1].point, points[x].areaPaint);
-      } else if (points[x] != null && points[x + 1] == null) {
-        canvas.drawPoints(
-            PointMode.points, [points[x].point], points[x].areaPaint);
+    for (int i = 0; i < drawingPoints.length - 1; i++) {
+      DrawingPoint? current = drawingPoints[i];
+      DrawingPoint? next = drawingPoints[i + 1];
+      if (current != null && next != null) {
+        canvas.drawLine(current.offset, next.offset, current.paint);
       }
     }
   }
 
   @override
-  bool shouldRepaint(MyCustomPainter oldDelegate) {
-    return oldDelegate.points != points;
-  }
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class DrawingPoint {
+  Offset offset;
+  Paint paint;
+
+  DrawingPoint(this.offset, this.paint);
 }
